@@ -1,6 +1,6 @@
 import {App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 
-const pitchAccentRegex = /(\S*){([HL]+)}/gm
+const pitchAccentRegex = /([^\r\n\t\f\v :\/]*){([HL]+)}/gm
 const tags = "p, h1, h2, h3, h4, h5, h6, ol, ul, table"
 
 const convertFurigana = (element:Text): Node => {
