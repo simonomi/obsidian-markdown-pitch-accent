@@ -1,137 +1,79 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 
-// Remember to rename these classes and interfaces!
+const pitchAccentRegex = /(\S*){([HL]+)}/gm
+const tags = "p, h1, h2, h3, h4, h5, h6, ol, ul, table"
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const convertFurigana = (element:Text): Node => {
+	const matches = Array.from(element.textContent.matchAll(pitchAccentRegex))
+	let lastNode = element
+	for (const match of matches) {
+		pitchPattern = match[2]
+		text = match[1].substring(match[1].length - pitchPattern.length)
+		
+		const newNode = document.createElement("span")
+		newNode.appendText(match[1].substring(0, match[1].length - pitchPattern.length))
+		
+		let index = 0
+		let nextChar
+		for (const character of text.split("")) {
+			nextChar = newNode.createEl("span", {text: character})
+			nextChar.addClass(pitchPattern[index] == "L" ? "pitch-accent-low" : "pitch-accent-high")
+			
+			if (index > 0 && pitchPattern[index] != pitchPattern[index - 1]) {
+				nextChar.addClass("pitch-accent-change")
+			}
+			
+			index++;
+		}
+		
+		if (pitchPattern[index] == "L" && nextChar != undefined) {
+			nextChar.addClass("pitch-accent-drop")
+		}
+		
+// 		rubyNode.addClass('furi')
+		
+// 		kanji.forEach((k, i) => {
+// 			rubyNode.appendText(k)
+// 			rubyNode.createEl('rt', { text: furi[i] })
+// 		})
+// 		
+		const nodeToReplace = lastNode.splitText(lastNode.textContent.indexOf(match[0]))
+		lastNode = nodeToReplace.splitText(match[0].length)
+		nodeToReplace.replaceWith(newNode)
+	}
+	return element
 }
 
 export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
-	async onload() {
-		await this.loadSettings();
-
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+	public postprocessor: MarkdownPostProcessor = (el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
+		const blockToReplace = el.querySelectorAll(tags)
+		if (blockToReplace.length == 0) return
+	
+		function replace (node:Node) {
+			const childrenToReplace: Text[] = []
+			node.childNodes.forEach(child => {
+				if (child.nodeType == 3) {
+					// nodes of type 3 are TextElements
+					childrenToReplace.push(child as Text)
+				} else if (child.hasChildNodes() && child.nodeName != "CODE" && child.nodeName != "RUBY") {
+					// ignore content in Code Blocks
+					replace(child)
 				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+			})
+			
+			childrenToReplace.forEach((child) => {
+				child.replaceWith(convertFurigana(child))
+			})
+		}
+		
+		blockToReplace.forEach(block => {
+			replace(block)
+		})
 	}
-
-	onunload() {
-
+	
+	async onload () {
+		this.registerMarkdownPostProcessor(this.postprocessor)
 	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+	
+	onunload () {}
 }

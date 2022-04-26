@@ -1,4 +1,19 @@
-/* Sets all the text color to red! */
-body {
-    color: red;
+.pitch-accent-low {
+	border-bottom: 1px solid red;
+	line-height: 2;
+}
+
+.pitch-accent-high {
+	border-top: 1px solid red;
+	line-height: 2;
+}
+
+.pitch-accent-change {
+	border-left: 1px solid red;
+	line-height: 2;
+}
+
+.pitch-accent-drop {
+	border-right: 1px solid red;
+	line-height: 2;
 }
