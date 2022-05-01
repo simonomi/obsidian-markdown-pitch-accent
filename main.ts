@@ -13,30 +13,32 @@ const convertFurigana = (element:Text): Node => {
 		const newNode = document.createElement("span")
 		newNode.appendText(match[1].substring(0, match[1].length - pitchPattern.length))
 		
+		if (pitchPattern.length != text.length || (pitchPattern.length - text.length == 1 && pitchPattern.slice(-1) == "l")) {
+			newNode.appendText(text)
+			const nodeToReplace = lastNode.splitText(lastNode.textContent.indexOf(match[0]))
+			lastNode = nodeToReplace.splitText(match[0].length)
+			nodeToReplace.replaceWith(newNode)
+			continue
+		}
+		
 		let index = 0
 		let nextChar
 		for (const character of text.split("")) {
 			nextChar = newNode.createEl("span", {text: character})
+			
 			nextChar.addClass(pitchPattern[index] == "L" ? "pitch-accent-low" : "pitch-accent-high")
 			
 			if (index > 0 && pitchPattern[index] != pitchPattern[index - 1]) {
 				nextChar.addClass("pitch-accent-change")
 			}
 			
-			index++;
+			index++
 		}
 		
-		if (pitchPattern[index] == "L" && nextChar != undefined) {
+		if (pitchPattern[index] != undefined && nextChar != undefined) {
 			nextChar.addClass("pitch-accent-drop")
 		}
 		
-// 		rubyNode.addClass('furi')
-		
-// 		kanji.forEach((k, i) => {
-// 			rubyNode.appendText(k)
-// 			rubyNode.createEl('rt', { text: furi[i] })
-// 		})
-// 		
 		const nodeToReplace = lastNode.splitText(lastNode.textContent.indexOf(match[0]))
 		lastNode = nodeToReplace.splitText(match[0].length)
 		nodeToReplace.replaceWith(newNode)
