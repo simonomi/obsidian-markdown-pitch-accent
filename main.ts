@@ -1,6 +1,6 @@
 import {App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting} from 'obsidian';
 
-const pitchAccentRegex = /([^\r\n\t\f\v :\/]*){([HL]+)}/gm
+const pitchAccentRegex = /([^\r\n\t\f\v :\/]*){([HLl]+)}/gm
 const tags = "p, h1, h2, h3, h4, h5, h6, ol, ul, table"
 
 const convertFurigana = (element:Text): Node => {
@@ -13,7 +13,7 @@ const convertFurigana = (element:Text): Node => {
 		const newNode = document.createElement("span")
 		newNode.appendText(match[1].substring(0, match[1].length - pitchPattern.length))
 		
-		if (pitchPattern.length != text.length || (pitchPattern.length - text.length == 1 && pitchPattern.slice(-1) == "l")) {
+		if (pitchPattern.length != text.length && pitchPattern.length !== text.length + 1) {
 			newNode.appendText(text)
 			const nodeToReplace = lastNode.splitText(lastNode.textContent.indexOf(match[0]))
 			lastNode = nodeToReplace.splitText(match[0].length)
@@ -35,8 +35,12 @@ const convertFurigana = (element:Text): Node => {
 			index++
 		}
 		
-		if (pitchPattern[index] != undefined && nextChar != undefined) {
-			nextChar.addClass("pitch-accent-drop")
+		if (nextChar != undefined) {
+			if (pitchPattern[index] == "L") {
+				nextChar.addClass("pitch-accent-drop")
+			} else if (pitchPattern[index] == "H") {
+				nextChar.addClass("pitch-accent-drop")
+			}
 		}
 		
 		const nodeToReplace = lastNode.splitText(lastNode.textContent.indexOf(match[0]))
