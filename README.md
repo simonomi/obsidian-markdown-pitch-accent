@@ -1,6 +1,6 @@
 ## obsidian markdown pitch accent
 
-an [obsidian](https://ww.obsidian.md) plugin to render furigana in markdown
+an [obsidian](https://ww.obsidian.md) plugin to render pitch accent in markdown
 
 ### syntax
 
